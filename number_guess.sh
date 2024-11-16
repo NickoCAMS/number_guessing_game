@@ -41,11 +41,14 @@ fi
 SECRET_NUMBER=$((RANDOM % 1000 + 1))
 
 # Initialize the number of guesses counter
-NUM_GUESSES=0
+NUM_GUESSES=1
 
 # Prompt the user to guess the secret number
 echo "Guess the secret number between 1 and 1000:"
 while true; do
+  # Increment the number of guesses (counting the current guess)
+  NUM_GUESSES=$((NUM_GUESSES + 1))
+  
   # Read the user's guess
   read GUESS
   
@@ -55,14 +58,8 @@ while true; do
     continue
   fi
   
-  # Increment the number of guesses
-  NUM_GUESSES=$((NUM_GUESSES + 1))
-  
   # Check if the guess is correct
   if [[ "$GUESS" -eq "$SECRET_NUMBER" ]]; then
-    # If the guess is correct, congratulate the user and display the number of tries
-    echo "You guessed it in $NUM_GUESSES tries. The secret number was $SECRET_NUMBER. Nice job!"
-    
     # Update the games played and best game in the database
     GAMES_PLAYED=$((GAMES_PLAYED + 1))
     if [[ $NUM_GUESSES -lt $BEST_GAME ]] || [[ $BEST_GAME -eq 0 ]]; then
@@ -71,6 +68,9 @@ while true; do
     
     # Update the database with the new game statistics
     $PSQL "UPDATE scores SET games_played = $GAMES_PLAYED, best_game = $BEST_GAME WHERE username = '$USERNAME'"
+    
+    # If the guess is correct, congratulate the user and display the number of tries
+    echo "You guessed it in $NUM_GUESSES tries. The secret number was $SECRET_NUMBER. Nice job!"
     
     break  # Exit the loop after the correct guess
   elif [[ "$GUESS" -gt "$SECRET_NUMBER" ]]; then
