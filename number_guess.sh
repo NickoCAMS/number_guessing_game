@@ -7,10 +7,10 @@ PSQL="psql --username=freecodecamp --dbname=number_guess -t --no-align -c"
 create_user() {
     local username=$1
     local number_to_guess=$2
-    $PSQL "INSERT INTO scores (username, guesses, number_to_guess, games_played) VALUES ('$username', 0, $number_to_guess, 1);"
+    $PSQL "INSERT INTO scores (username, guesses, number_to_guess, games_played, best_game) VALUES ('$username', 0, $number_to_guess, 1, 0);"
 }
 
-# Funzione per aggiornare il numero di tentativi
+# Funzione per aggiornare il numero di tentativi e il miglior gioco
 update_guesses() {
     local username=$1
     local guesses=$2
@@ -36,12 +36,6 @@ get_number_to_guess() {
     $PSQL "SELECT number_to_guess FROM scores WHERE username = '$username';"
 }
 
-# Funzione per ottenere il punteggio migliore di un utente
-get_best_game() {
-    local username=$1
-    $PSQL "SELECT best_game FROM scores WHERE username = '$username';"
-}
-
 # Chiedi il nome utente
 echo "Enter your username:"
 read username
@@ -64,8 +58,8 @@ else
     echo "Welcome back, $username! You have played $games_played games, and your best game took $best_game guesses."
 fi
 
-# Iniziamo il gioco
-number_to_guess=$(( RANDOM % 1000 + 1 ))  # Il numero da indovinare è sempre casuale, anche per i ritorni
+# Imposta il numero segreto per il gioco
+number_to_guess=$(( RANDOM % 1000 + 1 ))  # Il numero da indovinare è sempre casuale
 correct_guess=0
 guesses=0
 
@@ -80,28 +74,27 @@ do
     if ! [[ "$guess" =~ ^[0-9]+$ ]]
     then
         echo "That is not an integer, guess again:"
-        continue
-    fi
-
-    ((guesses++))
-
-    # Controlla se il numero è giusto
-    if [[ $guess -lt $number_to_guess ]]
-    then
-        echo "It's higher than that, guess again:"
-    elif [[ $guess -gt $number_to_guess ]]
-    then
-        echo "It's lower than that, guess again:"
     else
-        echo "You guessed it in $guesses tries. The secret number was $number_to_guess. Nice job!"
-        correct_guess=1
+        ((guesses++))
 
-        # Aggiorna il numero di giochi giocati e il miglior gioco
-        if [[ $games_played -gt 0 && ($best_game -eq 0 || $guesses -lt $best_game) ]]
+        # Controlla se il numero è giusto
+        if [[ $guess -lt $number_to_guess ]]
         then
-            best_game=$guesses
+            echo "It's higher than that, guess again:"
+        elif [[ $guess -gt $number_to_guess ]]
+        then
+            echo "It's lower than that, guess again:"
+        else
+            echo "You guessed it in $guesses tries. The secret number was $number_to_guess. Nice job!"
+            correct_guess=1
+
+            # Aggiorna il numero di giochi giocati e il miglior gioco
+            if [[ $games_played -gt 0 && ($best_game -eq 0 || $guesses -lt $best_game) ]]
+            then
+                best_game=$guesses
+            fi
+            increment_games_played $username
+            update_guesses $username $guesses $best_game
         fi
-        increment_games_played $username
-        update_guesses $username $guesses $best_game
     fi
 done
